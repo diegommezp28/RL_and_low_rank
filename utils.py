@@ -2,6 +2,7 @@ import numpy as np
 from scipy.stats.distributions import norm
 from scipy.special import softmax
 from tqdm import tqdm
+from torch.utils.data import Dataset, DataLoader
 
 
 class SimplexEnvironment:
@@ -103,3 +104,16 @@ class SimplexEnvironment:
         
         return path
             
+
+
+class ListDataset():
+    def __init__(self, l) -> None:
+        # super().__init__()
+
+        self.l = l
+
+    def __len__(self):
+        return len(self.l)
+
+    def __getitem__(self, idx):
+        return self.l[idx]
