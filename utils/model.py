@@ -1,6 +1,7 @@
 import torch.nn as nn
 import torch.nn.functional as F
 import torch
+from .policy import SimplexPlanner
 
 
 class Net(nn.Module): 
@@ -146,71 +147,12 @@ class Net(nn.Module):
             return torch.matmul(phi_a_batch, self.mu()) # Should be size (states, states)
 
     def simplex_planner(self):
-        ...
-
-
-
-
-# import torch.optim as optim
-
-# criterion = nn.NLLLoss()
-# optimizer = optim.Adam(net.parameters(), lr=0.001)
-# loder_len = len(train_path)
-
-# device = ""
-
-
-# from tqdm import tqdm
-
-# losses = []
-# avg_losses = []
-# batch_losses = []
-# frob_diff = []
-# t = torch.from_numpy(MDP.get_transitions())
-# for epoch in range(3):  # loop over the dataset multiple times
-
-#     running_loss = 0.0
-#     avg_loss = 0.0
-#     with tqdm(enumerate(train_dataset, 0), total=(loder_len // batch_size)) as tepoch:
-#         for i, data in tepoch:
-#             tepoch.set_description(f"Epoch {epoch}.  ")
-
-#             # get the inputs; data is a list of [inputs, labels]
-#             input_states, input_actions, labels = data[0].to(device), data[1].to(device), data[2].to(device)
-
-#             # zero the parameter gradients
-#             optimizer.zero_grad()
-
-#             # forward + backward + optimize
-#             outputs = torch.log(net(input_states, input_actions))
-#             loss = criterion(outputs, labels)
-#             loss.backward()
-#             optimizer.step()
-
-#             # print statistics
-#             losses.append(loss.item())
-#             running_loss += loss.item()
-
-#             if i % 10 == 9:    # print every 10 mini-batches
-#                 tepoch.set_postfix(loss=f'{running_loss / 10:.3f}')
-#                 batch_losses.append(running_loss / 10)
-#                 running_loss = 0.0
-
-#             if i % 10 == 9:
-#                 with torch.no_grad():
-#                     m0 = net.phi_a_matrix(torch.tensor(0)).detach().unsqueeze(0).to("cpu")
-#                     for i in range(1, MDP.A):
-#                         ma = net.phi_a_matrix(torch.tensor(0)).detach().unsqueeze(0).to("cpu")
-#                         m0 = torch.cat((m0, ma), dim=0)
-                        
-#                     frob = torch.norm((m0-t))
-#                     frob_diff.append(frob)
-                    
-
-                    
+        """
+        Returns the SimplexPlanner associated with the current state of the model `self`.
+        """
         
-#         avg_losses.append(running_loss / (loder_len // batch_size))
-
-
-
-# print('Finished Training')
+        st = torch.tensor([i for i in range(self.states) for j in range(self.actions)])
+        acts = torch.tensor(list(range(self.actions)) * self.states)
+        x = self.phi(st, acts).detach().to("cpu").view(self.states, -1, self.d).numpy()
+        planner = SimplexPlanner(self.states, self.actions, self.d, x)
+        return planner
