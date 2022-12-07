@@ -2,7 +2,8 @@ import numpy as np
 from scipy.stats.distributions import norm
 from scipy.special import softmax
 from tqdm import tqdm
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
+import torch
 
 
 class SimplexEnvironment:
@@ -106,14 +107,23 @@ class SimplexEnvironment:
             
 
 
-class ListDataset():
-    def __init__(self, l) -> None:
-        # super().__init__()
 
+class ListDataset(Dataset):
+    def __init__(self, l, batch_size=4) -> None:
+        super().__init__()
         self.l = l
+        self.batch_size = batch_size
 
     def __len__(self):
         return len(self.l)
 
     def __getitem__(self, idx):
-        return self.l[idx]
+        return (self.l[idx][:2]), self.l[idx][2]
+
+    def __iter__(self):
+        l0, l1, l2 = [], [], []
+        for i in self.l:
+            l0.append(i[0]); l1.append(i[1]); l2.append(i[2])
+            if len(l0) == self.batch_size:
+                yield torch.tensor(l0), torch.tensor(l1), torch.tensor(l2)
+                l0, l1, l2 = [], [], []
