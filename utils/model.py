@@ -2,6 +2,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch
 from .policy import SimplexPlanner
+from .utils import PolicyIteration
+import numpy as np
 
 
 class Net(nn.Module): 
@@ -23,8 +25,6 @@ class Net(nn.Module):
         self.optimizer = optimizer(self.parameters(), **optim_args)
         self.t = real_transitions
 
-        # print(list(self.parameters()))
-
         self.losses = []
         self.frob_diff = []
     
@@ -44,9 +44,11 @@ class Net(nn.Module):
          actions_len = len(a) if hasattr(a, '__len__') else 1
          assert input_len == actions_len, f"The input lenghts do not coincide. Input States: {input_len}; Input Actions: {actions_len}"
 
+        #  print(input_len)
+        #  print(s.view(input_len, 1))
          s_hot = F.one_hot(s.view(input_len, 1), self.states).to(torch.float32)
          a_hot = F.one_hot(a.view(input_len, 1), self.actions).to(torch.float32)
-         x = torch.cat((s_hot, a_hot), dim=-1)# Concat one hot vectors 
+         x = torch.cat((s_hot, a_hot), dim=-1) # Concat one-hot vectors 
          return x.to(self.device)
 
     def enconde_output(self, s):
@@ -127,7 +129,6 @@ class Net(nn.Module):
                         m0 = torch.cat((m0, ma), dim=0)
                         
                     frob = torch.norm((m0-self.t))
-                    # print(frob)
                     self.frob_diff.append(frob)
         
         return (running_loss / n).detach().to("cpu").numpy()
@@ -150,9 +151,39 @@ class Net(nn.Module):
         """
         Returns the SimplexPlanner associated with the current state of the model `self`.
         """
-        
+
         st = torch.tensor([i for i in range(self.states) for j in range(self.actions)])
         acts = torch.tensor(list(range(self.actions)) * self.states)
         x = self.phi(st, acts).detach().to("cpu").view(self.states, -1, self.d).numpy()
         planner = SimplexPlanner(self.states, self.actions, self.d, x)
         return planner
+
+    def rep_ucb_planner(self, reward, inverse_covariance):
+        # print("planner")
+
+        def rep_ucb_reward(s_prev, a, s_next):
+            # change
+            # print("new")
+            # print(s_prev.shape, s_prev.ravel().shape, s_prev.dtype)
+            s_prev_t = torch.tensor(s_prev.ravel()).to(self.device).long()
+            a_t = torch.tensor(a.ravel()).to(self.device).long()
+            v = self.phi(s_prev_t, a_t).detach().to("cpu").numpy() #  shape (batch, 1, d)
+            # change
+            quad_form = (v @ inverse_covariance @ np.transpose(v, axes=[0, 2, 1])).reshape(s_prev.shape)
+            return reward(s_prev, a, s_next) +  np.minimum(quad_form, 2)
+
+       
+        def next_state_prob(s, a):
+            with torch.no_grad():
+                return self.forward(torch.from_numpy(s.ravel()).to(self.device).long(), 
+                                    torch.from_numpy(a.ravel()).to(self.device).long()).to("cpu").numpy()
+
+        
+        pol_iter = PolicyIteration( self.states, self.actions, next_state_prob , rep_ucb_reward)
+
+        V, policy = pol_iter.run(print_progress=False, max_iter=300)
+
+        return lambda s: policy[s]
+
+
+

@@ -1,15 +1,16 @@
 from collections import defaultdict
 import random
 import numpy as np
+from operator import itemgetter
 
 class DeterministicPolicy():
 
-    def __init__(self, states, actions, init_policy=None) -> None:
+    def __init__(self, states: int, actions: int, init_policy: np.ndarray = None) -> None:
         random.seed(0)
         self.states = states
         self.actions = actions
-        default_construct = init_policy if init_policy is not None else (lambda : random.randint(0, self.actions-1))
-        self.policy = defaultdict(default_construct)
+        self.policy = init_policy if init_policy is not None else np.random.randint(0, self.actions, size=self.states)
+        
 
 
     def get_action(self, state):
