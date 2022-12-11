@@ -109,7 +109,6 @@ class SimplexEnvironment:
             
 
 
-
 class ListDataset(Dataset):
     def __init__(self, l, batch_size=4) -> None:
         super().__init__()
@@ -129,85 +128,6 @@ class ListDataset(Dataset):
             if len(l0) == self.batch_size:
                 yield torch.tensor(l0), torch.tensor(l1), torch.tensor(l2)
                 l0, l1, l2 = [], [], []
-
-
-
-class ValueIteration():
-    def __init__(self, states, actions, next_state_prob , reward_func):
-
-        # Number of states
-        self.states = states
-        # Number of actions
-        self.actions = actions
-
-        # Should receive n entries (s, a) should give all the probabilities for all the possible states
-        self.next_state_prob = next_state_prob
-        # Should receive (s, a, s') and return a reward
-        self.reward_func = reward_func 
-
-    
-    def run(self, gamma = 1, delta = 0.1, max_iter = 500_000, values = None):
-
-
-        V = np.array([0 for _ in range(self.states)]) if values is None else np.array(values)
-        diffs = []
-
-        s_l = self.states
-        a_l = self.actions
-
-        s_arr = np.arange(s_l)
-        a_arr = np.arange(a_l)
-
-        s1 = np.repeat(s_arr, [s_l * a_l] * s_l).reshape(s_l, -1, s_l)
-        a1 = np.tile(np.repeat(a_arr, [s_l]*a_l), s_l).reshape(s_l, -1, s_l)
-        s2 = np.tile(s_arr, s_l * a_l).reshape(s_l, -1, s_l)
-
-        print(s1.shape, a1.shape, s2.shape)
-        R  = self.reward_func(s1, a1, s2)
-        print(R.shape)
-
-
-        s1_probs = np.repeat(s_arr, [a_l] * s_l)
-        a1_probs = np.tile(a_arr, s_l)
-        print("Probs:" ,s1_probs.shape, a1_probs.shape)
-        probs = self.next_state_prob(s1_probs, a1_probs).reshape(s_l, -1, s_l)
-
-
-
-        with tqdm(enumerate(range(max_iter)), total=max_iter) as tqdm_iter:
-            for i, _ in tqdm_iter:
-                # max_diff = 0 # Current max diff between old and new values
-                new_values = np.zeros(self.states)
-                tqdm_iter.set_postfix(i=f'{i}')
-
-                V_arr = np.tile(V, s_l * a_l).reshape(s_l, -1, s_l)
-                operator = probs * (R + gamma * V_arr)
-                operator_sum = np.sum(operator, axis = -1).reshape(s_l, a_l, 1)
-                new_V = operator_sum.max(axis=1).reshape(-1)
-                tqdm_iter.set_postfix(shape=f'{new_V.shape}')
-
-                max_diff = np.max(np.abs(V - new_V))
-                diffs.append(max_diff)
-                # tqdm_iter.set_postfix(diff=f'{max_diff:.3f}')
-                V = new_V
-
-                # # for s in range(self.states - 1): # Since is episodic and (s-1) is the terminal state -> V(s-1) = 0 always
-                # #     max_val = 0
-                # #     # next_states = []
-
-                # #     for a in range(self.actions):
-                # #         states_probs = self.next_state_prob(s, a)
-                # #         rewards = np.array([self.reward_func(s, a, s_) + gamma*V[s_] for s_ in range(self.states)])
-                # #         new_val = np.dot(states_probs, rewards)
-                # #         max_val = max(max_val, new_val)
-
-                    # V_new[s] = max_val  # Update value with highest value
-                #     max_diff = max(max_diff, abs(V[s] - max_val))
-                
-                if max_diff <= delta:
-                    break
-        
-        return V, diffs
 
 class PolicyIteration():
     def __init__(self, states, actions, next_state_prob , reward_func, discount = 0.5, init_policy=None):
@@ -247,10 +167,6 @@ class PolicyIteration():
 
         
         return self.V, self.policy.policy
-
-            
-
-
 
 
 
@@ -337,6 +253,85 @@ class PolicyImprovement():
         return optimal_policy
 
 
+
+
+# TODO complete Value Iteration Algorithm 
+class ValueIteration():
+    def __init__(self, states, actions, next_state_prob , reward_func):
+
+        # Number of states
+        self.states = states
+        # Number of actions
+        self.actions = actions
+
+        # Should receive n entries (s, a) should give all the probabilities for all the possible states
+        self.next_state_prob = next_state_prob
+        # Should receive (s, a, s') and return a reward
+        self.reward_func = reward_func 
+
+    
+    def run(self, gamma = 1, delta = 0.1, max_iter = 500_000, values = None):
+
+
+        V = np.array([0 for _ in range(self.states)]) if values is None else np.array(values)
+        diffs = []
+
+        s_l = self.states
+        a_l = self.actions
+
+        s_arr = np.arange(s_l)
+        a_arr = np.arange(a_l)
+
+        s1 = np.repeat(s_arr, [s_l * a_l] * s_l).reshape(s_l, -1, s_l)
+        a1 = np.tile(np.repeat(a_arr, [s_l]*a_l), s_l).reshape(s_l, -1, s_l)
+        s2 = np.tile(s_arr, s_l * a_l).reshape(s_l, -1, s_l)
+
+        print(s1.shape, a1.shape, s2.shape)
+        R  = self.reward_func(s1, a1, s2)
+        print(R.shape)
+
+
+        s1_probs = np.repeat(s_arr, [a_l] * s_l)
+        a1_probs = np.tile(a_arr, s_l)
+        print("Probs:" ,s1_probs.shape, a1_probs.shape)
+        probs = self.next_state_prob(s1_probs, a1_probs).reshape(s_l, -1, s_l)
+
+
+
+        with tqdm(enumerate(range(max_iter)), total=max_iter) as tqdm_iter:
+            for i, _ in tqdm_iter:
+                # max_diff = 0 # Current max diff between old and new values
+                new_values = np.zeros(self.states)
+                tqdm_iter.set_postfix(i=f'{i}')
+
+                V_arr = np.tile(V, s_l * a_l).reshape(s_l, -1, s_l)
+                operator = probs * (R + gamma * V_arr)
+                operator_sum = np.sum(operator, axis = -1).reshape(s_l, a_l, 1)
+                new_V = operator_sum.max(axis=1).reshape(-1)
+                tqdm_iter.set_postfix(shape=f'{new_V.shape}')
+
+                max_diff = np.max(np.abs(V - new_V))
+                diffs.append(max_diff)
+                # tqdm_iter.set_postfix(diff=f'{max_diff:.3f}')
+                V = new_V
+
+                # # for s in range(self.states - 1): # Since is episodic and (s-1) is the terminal state -> V(s-1) = 0 always
+                # #     max_val = 0
+                # #     # next_states = []
+
+                # #     for a in range(self.actions):
+                # #         states_probs = self.next_state_prob(s, a)
+                # #         rewards = np.array([self.reward_func(s, a, s_) + gamma*V[s_] for s_ in range(self.states)])
+                # #         new_val = np.dot(states_probs, rewards)
+                # #         max_val = max(max_val, new_val)
+
+                    # V_new[s] = max_val  # Update value with highest value
+                #     max_diff = max(max_diff, abs(V[s] - max_val))
+                
+                if max_diff <= delta:
+                    break
+        
+        return V, diffs
 
 
 

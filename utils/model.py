@@ -44,8 +44,6 @@ class Net(nn.Module):
          actions_len = len(a) if hasattr(a, '__len__') else 1
          assert input_len == actions_len, f"The input lenghts do not coincide. Input States: {input_len}; Input Actions: {actions_len}"
 
-        #  print(input_len)
-        #  print(s.view(input_len, 1))
          s_hot = F.one_hot(s.view(input_len, 1), self.states).to(torch.float32)
          a_hot = F.one_hot(a.view(input_len, 1), self.actions).to(torch.float32)
          x = torch.cat((s_hot, a_hot), dim=-1) # Concat one-hot vectors 
@@ -159,16 +157,13 @@ class Net(nn.Module):
         return planner
 
     def rep_ucb_planner(self, reward, inverse_covariance):
-        # print("planner")
 
         def rep_ucb_reward(s_prev, a, s_next):
-            # change
-            # print("new")
-            # print(s_prev.shape, s_prev.ravel().shape, s_prev.dtype)
+
             s_prev_t = torch.tensor(s_prev.ravel()).to(self.device).long()
             a_t = torch.tensor(a.ravel()).to(self.device).long()
             v = self.phi(s_prev_t, a_t).detach().to("cpu").numpy() #  shape (batch, 1, d)
-            # change
+            
             quad_form = (v @ inverse_covariance @ np.transpose(v, axes=[0, 2, 1])).reshape(s_prev.shape)
             return reward(s_prev, a, s_next) +  np.minimum(quad_form, 2)
 
@@ -180,7 +175,6 @@ class Net(nn.Module):
 
         
         pol_iter = PolicyIteration( self.states, self.actions, next_state_prob , rep_ucb_reward)
-
         V, policy = pol_iter.run(print_progress=False, max_iter=300)
 
         return lambda s: policy[s]
