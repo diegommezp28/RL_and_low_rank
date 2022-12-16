@@ -30,7 +30,7 @@
 <!-- PROJECT LOGO -->
 <br />
 <div align="center">
-    <img src="https://user-images.githubusercontent.com/47110686/140454597-58fa49cf-744a-4d96-ba6e-54e0387bc073.png" alt="Logo" width="450" height="300">
+    <img src="https://user-images.githubusercontent.com/47110686/208136557-c8956204-50b7-45f7-a5f4-7ef36f45254f.png" alt="Logo" width="1000" height="250">
   </a>
 
 
