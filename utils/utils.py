@@ -156,17 +156,19 @@ class PolicyIteration():
 
 
     def run(self, max_iter = 2000, print_progress = True):
+        converge = False
         for _ in tqdm(range(max_iter), disable=(not print_progress)):
             self.V = self.eval_policy.evaluatePolicy(self.policy.get_action, self.discount)
             new_policy = self.improve_policy.improvePolicy(self.V, self.discount)
 
             if np.array_equal(self.policy.policy, new_policy):
+                converge = True
                 break
 
             self.policy.policy = new_policy
 
         
-        return self.V, self.policy.policy
+        return self.V, self.policy.policy, converge
 
 
 

@@ -156,7 +156,7 @@ class Net(nn.Module):
         planner = SimplexPlanner(self.states, self.actions, self.d, x)
         return planner
 
-    def rep_ucb_planner(self, reward, inverse_covariance):
+    def rep_ucb_planner(self, reward, inverse_covariance, max_iter=300):
 
         def rep_ucb_reward(s_prev, a, s_next):
 
@@ -175,9 +175,9 @@ class Net(nn.Module):
 
         
         pol_iter = PolicyIteration( self.states, self.actions, next_state_prob , rep_ucb_reward)
-        V, policy = pol_iter.run(print_progress=False, max_iter=300)
+        V, policy, converge = pol_iter.run(print_progress=False, max_iter=max_iter)
 
-        return lambda s: policy[s]
+        return lambda s: policy[s], V, policy, converge
 
 
 
