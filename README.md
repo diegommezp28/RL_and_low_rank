@@ -129,7 +129,7 @@ Distributed under the MIT License. See `LICENSE.txt` for more information.
 <!-- CONTACT -->
 ## Contact
 
-Diego Gómez  - da.gomezp@uniandes.edu.co
+Diego Andrés Gómez Polo  - da.gomezp@uniandes.edu.co
 
 Project Link: [https://github.com/diegommezp28/RL_and_low_rank](https://github.com/diegommezp28/RL_and_low_rank)
 
